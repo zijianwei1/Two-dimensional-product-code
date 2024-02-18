@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>code</title>
+  <style>
+       #input-box {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    #input-label {
+      font-weight: bold;
+      margin-right: 16px;
+      margin-top: 5px;
+    }
+
+    #input-field {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    /* 输出框样式 */
+    #output-box {
+      display: flex;
+      flex-direction: column;
+      margin-top: 20px;
+    }
+
+    .output-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .output-field {
+      height: 100px;
+      padding: 10px;
+      font-size: 12px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      resize: none;
+    }
+
+    .output-field1 {
+      height: 10px;
+      padding: 20px;
+      font-size: 13px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      resize: none;
+    }
+
+    /* 按钮样式 */
+    button {
+      margin-left: 10px;
+      margin-top: 5px;
+      padding: 10px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #3e8e41;
+    }
+
+    /* 标签样式 */
+    label {
+      font-size: xx-large;
+      color: #2F4056;
+      margin-left: 30%;
+      margin-top: 20%;
+    }
+</style>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+</head>
+<body>
+<div style="margin-left: 5%">
+  <label>Improved Hard-Decision Iterative Decoding Method for 2D SEC-DED Codes</label>
+  <div>
+    <label>errorRate：</label>
+    <input type="text" id="error-rate-input" value="0.1">
+    <button type="button" onclick="handleButtonClick()">sure</button>
+  </div>
+  <div id="input-box">
+    <label id="input-label"><b>Please enter a message sequence：</b></label>
+    <textarea id="input-field"></textarea>
+    <button id="myButton" type="button" onclick="handleButtonClick()">sure</button>
+  </div>
+
+  <div id="output-box">
+    <div>
+      <label class="output-label"><b>Encode content：</b></label>
+      <textarea class="output-field" readonly id="mat1-output"></textarea>
+    </div>
+
+    <div>
+      <label class="output-label"><b>Coding with error：</b></label>
+      <textarea class="output-field" readonly id="mat-err-output"></textarea>
+    </div>
+
+    <div>
+      <label class="output-label"><b>Coding error compare：</b></label>
+      <textarea class="output-field" readonly id="Compare_result"></textarea>
+    </div>
+
+    <div>
+      <label class="output-label"><b>Correct incorrect coding and flag：</b></label>
+      <textarea class="output-field" readonly id="mat2-output"></textarea>
+    </div>
+
+    <div>
+      <label class="output-label"><b>modify incorrect coding：</b></label>
+      <textarea class="output-field" readonly id="mat3-output"></textarea>
+    </div>
+
+
+    <div>
+      <label class="output-label"><b>Message result：</b></label>
+      <textarea class="output-field1" readonly id="result-output"></textarea>
+    </div>
+
+  </div>
+
+  <script src="extend.js" defer></script>
+<!--  <script src="https://unpkg.com/mathjs@latest/lib/browser/math.min.js"></script>-->          
+<!--  <link rel="stylesheet" href="two-dimensional_hamming_styles.css">-->
+  <script>
+
+        function handleButtonClick() {                                     //获取用户输入
+          let errorRate = parseFloat(document.getElementById("error-rate-input").value);
+
+              // 检查用户输入的值是否在 0 到 1 之间
+              if (isNaN(errorRate) || errorRate < 0 || errorRate > 1) {
+                alert("The value entered is not a valid bit errorRate");
+                return;
+              }
+          let input = document.getElementById("input-field").value.trim();
+          let rows = 4;
+          let columns = 4;
+
+          // 检查输入是否合法
+          if (isNaN(rows) || isNaN(columns) || rows <= 0 || columns <= 0 || input.length !== rows * columns) {
+            alert("The message input is invalid, please re-enter!");
+            return;
+          }
+
+
+        // 获取输入 编码
+        let mes = stringToMatrix(input, rows, columns);
+        let mulMatrix = matrixMultiply(mes, G);
+        let mulMatrix_mod2 = mod2(mulMatrix);
+        console.log('mulMatrix_mod2: ' + JSON.stringify(mulMatrix_mod2));
+        let tra_mulMatrix_mod2 = transpose(mulMatrix_mod2);
+        console.log('tra_mulMatrix_mod2: ' + JSON.stringify(tra_mulMatrix_mod2));
+        let code_1 = matrixMultiply(tra_mulMatrix_mod2, G);
+        console.log('code_1: ' + JSON.stringify(code_1)); //乘法
+        let code = mod2(code_1); //求余
+        console.log('code: ' + JSON.stringify(code)); //编码求余输出
+
+      //模拟信道过程 错码
+
+      let code_data = JSON.stringify(code);
+
+      let code_witherror1 = simulateChannel(code, errorRate);
+      let code_witherror = JSON.parse(JSON.stringify(code_witherror1));
+      let out_error=JSON.stringify(code_witherror);
+
+
+      console.log('code_witherror: ' + JSON.stringify(code_witherror));
+      let str1=convertToString(code_data);
+      console.log(str1);
+
+      //译码过程
+      let [rec1, flag1] = EHPC_decoding( H,code_witherror, table);
+      let result = EHPC_decoding( H,rec1, table);
+      let [extractmes,flag]= result;
+      var result_cop =  JSON.stringify(extractmes);
+      let flag_matrix=flag
+      //转化为字符串然后进行比较
+<!--      var str11=extractNumbers(code_data);-->
+<!--      var str22=extractNumbers(out_error);-->
+<!--      var differentPositions = compareStrings(str11, str22);-->
+
+<!--      var compare = [];-->
+<!--      if (differentPositions.length > 0) {-->
+<!--        console.log("不同位置的字符：");-->
+<!--        for (var i = 0; i < differentPositions.length; i++) {-->
+<!--          var position = differentPositions[i];-->
+<!--          var row = position[0] + 1;-->
+<!--          var col = position[1] + 1;-->
+<!--          compare.push(position[1]);-->
+<!--        }-->
+<!--      } else {-->
+<!--        console.log("两个字符串完全相同。");-->
+<!--      }-->
+<!--      console.log(compare);-->
+<!--          const compare_length = compare.length;-->
+<!--          const rowResult = compare.map(num => Math.floor(num / 8));-->
+<!--          const columnResult = compare.map(num => num % 8);-->
+<!--          const compare_result = compare.map((num, index) => [rowResult[index], columnResult[index]]);-->
+
+<!--      var submatrix1 = extractSubmatrix(extractmes);   //切片消息左上角转置-->
+<!--      var submatrix=transpose(submatrix1);-->
+<!--       var submatrixString = '';-->
+<!--      for (var i = 0; i < 4; i++) {-->
+<!--        for (var j = 0; j < 4; j++) {-->
+<!--          submatrixString += submatrix[j][i] + ' ';-->
+<!--        }-->
+<!--        submatrixString += '';-->
+<!--      }-->
+
+// 2023/11/21
+
+      var submatrix1 = extractSubmatrix(extractmes);
+      var submatrix=transpose(submatrix1);
+       var submatrixString = '';
+      for (var i = 0; i < 4; i++) {
+        for (var j = 0; j < 4; j++) {
+          submatrixString += submatrix[j][i] + ' ';
+        }
+        submatrixString += '';
+      }
+
+function formatMatrix(matrix, newline = '\n') {
+  let result = '';
+
+  // 遍历矩阵的每一行
+  for (let i = 0; i < matrix.length; i++) {
+    const row = matrix[i];
+
+    // 遍历当前行的每个元素
+    for (let j = 0; j < row.length; j++) {
+      const element = row[j];
+
+      // 将元素添加到结果字符串中
+      result += element + ' ';
+    }
+
+    // 如果不是最后一行，则添加换行符到结果字符串中
+    if (i !== matrix.length - 1) {
+      result += newline;
+    }
+  }
+
+  return result;
+}
+   var str11=extractNumbers(code_data);
+      var str22=extractNumbers(out_error);
+      var differentPositions = compareStrings(str11, str22);
+
+
+      var compare = [];
+      if (differentPositions.length > 0) {
+        console.log("不同位置的字符：");
+        for (var i = 0; i < differentPositions.length; i++) {
+          var position = differentPositions[i];
+          var row = position[0] + 1;
+          var col = position[1] + 1;
+          compare.push(position[1]);
+        }
+      } else {
+        console.log("两个字符串完全相同。");
+      }
+
+      // 创建一个新的矩阵，初始值全为0
+let matrix1 = Array(8).fill().map(() => Array(8).fill(0));
+
+// 遍历compare数组
+for (let i = 0; i < compare.length; i++) {
+  let position = compare[i];
+  let row = Math.floor(position / 8);
+  let col = position % 8;
+
+  // 将存在的位置标记为1
+  matrix1[row][col] = 1;
+}
+
+// 现在，matrix就是你想要的矩阵，其中compare数组中存在的位置被标记为1，不存在的位置被标记为0
+console.log(matrix1);
+
+
+      var str22=extractNumbers(out_error);
+      var str33=extractNumbers(result_cop);
+      var differentPositions = compareStrings(str33, str22);
+
+
+      var compare1 = [];
+      if (differentPositions.length > 0) {
+        console.log("不同位置的字符：");
+        for (var i = 0; i < differentPositions.length; i++) {
+          var position = differentPositions[i];
+          var row = position[0] + 1;
+          var col = position[1] + 1;
+          compare.push(position[1]);
+        }
+      } else {
+        console.log("两个字符串完全相同。");
+      }
+
+      // 创建一个新的矩阵，初始值全为0
+let matrix2 = Array(8).fill().map(() => Array(8).fill(0));
+
+// 遍历compare数组
+for (let i = 0; i < compare.length; i++) {
+  let position = compare[i];
+  let row = Math.floor(position / 8);
+  let col = position % 8;
+
+  // 将存在的位置标记为1
+  matrix2[row][col] = 1;
+}
+
+// 现在，matrix就是你想要的矩阵，其中compare数组中存在的位置被标记为1，不存在的位置被标记为0
+console.log(matrix2);
+
+
+function formatAndDisplayMatrix(elementId, matrix) {
+  let element = document.getElementById(elementId);
+  let newline = (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') ? '\n' : '<br>';
+  let property = (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') ? 'value' : 'innerHTML';
+  let formattedMatrix = formatMatrix(matrix, newline);
+  element[property] = formattedMatrix;
+}
+
+formatAndDisplayMatrix('mat1-output', mod2(code_1));
+formatAndDisplayMatrix('mat-err-output', code_witherror1);
+formatAndDisplayMatrix('Compare_result', matrix1);
+formatAndDisplayMatrix('mat3-output', matrix2);
+formatAndDisplayMatrix('mat2-output', extractmes);
+          document.getElementById("mat2-output").innerHTML = JSON.stringify(formatMatrix(extractmes, '<br>', flag)) + flag;
+
+
+      // 将结果输出到页面
+<!--          document.getElementById("mat1-output").value = JSON.stringify(mod2(code_1));-->
+<!--          document.getElementById("mat-err-output").value = JSON.stringify(out_error);-->
+<!--          document.getElementById("Compare_result").value = 'element_num:'+JSON.stringify(compare_length)+' location:'+JSON.stringify(compare_result);-->
+<!--          document.getElementById("mat2-output").value = JSON.stringify(result);-->
+<!--          document.getElementById("result-output").value = JSON.stringify(submatrixString);-->
+
+          document.getElementById("mat1-output").innerHTML = JSON.stringify(formatMatrix(mod2(code_1), '<br>'));
+<!--          document.getElementById("mat-err-output").innerHTML = JSON.stringify(formatMatrix(code_witherror1, '<br>'));-->
+          document.getElementById("Compare_result").innerHTML = JSON.stringify(formatMatrix(matrix1, '<br>'));
+          document.getElementById("mat2-output").innerHTML = JSON.stringify(formatMatrix(extractmes, '<br>'));
+          document.getElementById("mat3-output").innerHTML = JSON.stringify(formatMatrix(matrix2, '<br>'));
+          document.getElementById("result-output").value = JSON.stringify(submatrixString);
+
+}
+
+
+      </script>
+</div>
+</body>
+</html><!DOCTYPE html>
